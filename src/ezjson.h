@@ -19,8 +19,8 @@ struct json_value {
     bool value;
 };
 
-struct json_contex {
-    json_contex(const char* rhs) : context(rhs) { }
+struct json_context {
+    json_context(const char* rhs) : context(rhs) { }
     const char* context;
 };
 

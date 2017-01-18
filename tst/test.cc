@@ -22,14 +22,27 @@ static int test_pass = 0;
 
 static void test_parse_null() {
     json_value v;
-    v.type = JSON_NULL;
+    v.type = JSON_BOOLEAN;
     EXPECT_EQ_INT(ERROR, parse_json(&v, "xxx null"));
     EXPECT_EQ_INT(OK, parse_json(&v, "null"));
+    EXPECT_EQ_INT(OK, parse_json(&v, "   null"));
+    EXPECT_EQ_INT(ERROR, parse_json(&v, "null  xxx"));
     EXPECT_EQ_INT(JSON_NULL, get_json_type(&v));
+}
+
+static void test_parse_bool() {
+    json_value v;
+    v.type = JSON_NULL;
+    EXPECT_EQ_INT(OK, parse_json(&v, "true"));
+    EXPECT_EQ_INT(JSON_BOOLEAN, get_json_type(&v));
+    v.type = JSON_NULL;
+    EXPECT_EQ_INT(OK, parse_json(&v, "false"));
+    EXPECT_EQ_INT(JSON_BOOLEAN, get_json_type(&v));
 }
 
 int main() {
     test_parse_null();
+    test_parse_bool();
     printf("%d/%d (%3.2f%%) passed\n", test_pass, test_count, test_pass * 100.0 / test_count);
     return main_ret;
 }
