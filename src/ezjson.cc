@@ -4,6 +4,10 @@
 #include <cassert>
 #include <cctype>
 
+// forward declaration
+parse_status parse_json_value(json_value* v, json_context* jc);
+
+// definition
 void parse_json_whitespace(json_context* jscontext) {
     // just consume ws
     const char* json = jscontext->context;
@@ -104,6 +108,31 @@ parse_status parse_json_string(json_value* v, json_context* jc) {
     return result;
 }
 
+parse_status parse_json_array(json_value* v, json_context* jc) {
+    json_value tmp_v;
+    json_context tmp_jc(jc->context+1);
+    int size = 0;
+    any_stack as;
+    for(;;) {
+	switch(*tmp_jc.context) {
+	  case ']':
+	    v->a.e = (json_value*)malloc(size * sizeof(json_value));
+	    memcpy(v->a.e, as.bottom<json_value>(), size * sizeof(json_value));
+	    v->a.size = size;
+	    jc->context = tmp_jc.context+1;
+	    return OK;
+	  case ',':
+	    tmp_jc.context += 1;
+	    assert(parse_json_value(&tmp_v, &tmp_jc) == OK);
+	    *as.push<json_value>() = tmp_v;
+	    size++;
+	  default:
+	    return ERROR;
+	}
+    }
+    return ERROR;
+}
+
 int i = 0;
 
 parse_status parse_json_value(json_value* v, json_context* jc) {
@@ -116,6 +145,8 @@ parse_status parse_json_value(json_value* v, json_context* jc) {
 	return parse_json_value_null(v, jc);
       case '\"':
 	return parse_json_string(v, jc);
+      case '[':
+	return parse_json_array(v, jc);
       default:
 	return parse_json_number(v, jc);
     }

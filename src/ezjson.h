@@ -19,6 +19,7 @@ enum parse_status {
 struct json_value {
     json_type type;
     union {
+	struct {json_value* e; size_t size; }a;
 	struct {char* s; size_t len; }s;
 	bool bvalue;
 	double number;

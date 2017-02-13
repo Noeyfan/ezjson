@@ -43,7 +43,7 @@ public:
 	  }
 	  char* p_ = stack_top_;
 	  stack_top_ += sizeof(T) * count;
-	  return p_;
+	  return (T*)p_;
       }
 
     template<typename T>

@@ -1,4 +1,6 @@
 1. Refactor API for parsing TRUE/FALSE/NULL #DONE
 2. Implement JSON Number #DONE
 3. Implement String, Implement type erasure Stack #DONE
+4. Implement Array #DONE
+4. Add test for Array
 4. Implement Struct
