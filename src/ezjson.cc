@@ -1,6 +1,8 @@
 #include "ezjson.h"
+#include "any_stack.h"
 #include <iostream>
 #include <cassert>
+#include <cctype>
 
 void parse_json_whitespace(json_context* jscontext) {
     // just consume ws
@@ -37,7 +39,7 @@ parse_status parse_json_value_boolean(json_value* v, json_context* jc) {
 	*(json+3) == 's' &&
 	*(json+4) == 'e' ) {
 	result = OK;
-	v->value = false;
+	v->bvalue = false;
 	v->type = JSON_BOOLEAN;
 	json += 5;
     }
@@ -47,12 +49,58 @@ parse_status parse_json_value_boolean(json_value* v, json_context* jc) {
 	*(json+2) == 'u' &&
 	*(json+3) == 'e' ) {
 	result = OK;
-	v->value = true;
+	v->bvalue = true;
 	v->type = JSON_BOOLEAN;
 	json += 4;
     }
 
     jc->context = json;
+    return result;
+}
+
+#define ISDIGIT(ch) ((ch) >= '0' && (ch) <= '9')
+#define ISDIGIT1T9(ch) ((ch) >= '1' && (ch) <= '9')
+
+parse_status parse_json_number(json_value* v, json_context* jc) {
+    parse_status result = ERROR;
+    const char* json = jc->context;
+    if(*json == '-') json++;
+    if(!ISDIGIT(*json)) return ERROR;
+    if(*json == '0' && ISDIGIT1T9(*(json+1))) return ERROR;
+    while(isdigit(*json) ||
+	  (*json == '.' && json != jc->context)) {
+	json++;
+    }
+    v->number = std::atof(jc->context);
+    v->type = JSON_NUMBER;
+    result = OK;
+
+    jc->context = json;
+    return result;
+}
+
+parse_status parse_json_string(json_value* v, json_context* jc) {
+    parse_status result = ERROR;
+    const char* json = jc->context;
+    any_stack as;
+    for(;;) {
+	json++;
+	v->s.len++;
+	switch(*json) {
+	  case '\"':
+	    *as.push<char>() = '\0';
+	    v->type = JSON_STRING;
+	    v->s.s = (char*)malloc(v->s.len + 1);
+	    strcpy(v->s.s, as.bottom<char>());
+	    jc->context = json + 1;
+	    return OK;
+	  case '\0':
+	    jc->context = json;
+	    return ERROR;
+	  default:
+	    *as.push<char>() = *json;
+	}
+    }
     return result;
 }
 
@@ -66,8 +114,10 @@ parse_status parse_json_value(json_value* v, json_context* jc) {
 	return parse_json_value_boolean(v, jc);
       case 'n':
 	return parse_json_value_null(v, jc);
+      case '\"':
+	return parse_json_string(v, jc);
       default:
-	return ERROR;
+	return parse_json_number(v, jc);
     }
 }
 

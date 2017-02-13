@@ -1,5 +1,7 @@
 #ifndef __EZJSON_H__
 #define __EZJSON_H__
+
+#include <cstring>
 enum json_type {
     JSON_NULL,
     JSON_BOOLEAN,
@@ -16,7 +18,11 @@ enum parse_status {
 
 struct json_value {
     json_type type;
-    bool value;
+    union {
+	struct {char* s; size_t len; }s;
+	bool bvalue;
+	double number;
+    };
 };
 
 struct json_context {

@@ -1,4 +1,5 @@
 #include "../src/ezjson.h"
+#include "../src/any_stack.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +21,46 @@ static int test_pass = 0;
 
 #define EXPECT_EQ_INT(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual, "%d")
 
+#define EXPECT_EQ_DOUBLE(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual, "%f")
+
+#define EXPECT_EQ_STRING(expect, actual) EXPECT_EQ_BASE(!strcmp(expect,actual), expect, actual, "%s")
+
+#define TEST_ERROR(expect, actual)\
+  do {\
+      json_value v;\
+      EXPECT_EQ_INT(ERROR, parse_json(&v, actual));\
+  } while(0)
+
+#define TEST_NUMBER(expect, actual)\
+  do {\
+      json_value v;\
+      EXPECT_EQ_INT(OK, parse_json(&v, actual));\
+      EXPECT_EQ_INT(JSON_NUMBER, get_json_type(&v));\
+      EXPECT_EQ_DOUBLE(expect, v.number);\
+  } while(0)
+
+#include <iostream>
+#define TEST_STRING(expect, actual)\
+  do {\
+      json_value v;\
+      v.s.len = 0;\
+      EXPECT_EQ_INT(OK, parse_json(&v, actual));\
+      EXPECT_EQ_INT(JSON_STRING, get_json_type(&v));\
+      EXPECT_EQ_STRING(expect, v.s.s);\
+  } while(0)
+
+static void test_any_array() {
+    any_stack as;
+    *as.push<char>() = 'a';
+    *as.push<char>() = 'b';
+    *as.push<char>() = 'c';
+    as.pop<char>(1);
+    *as.push<char>() = 'd';
+    *as.push<char>() = '\0';
+    as.pop<char>(4);
+    EXPECT_EQ_STRING(as.bottom<char>(), "abd");
+}
+
 static void test_parse_null() {
     json_value v;
     v.type = JSON_BOOLEAN;
@@ -40,9 +81,29 @@ static void test_parse_bool() {
     EXPECT_EQ_INT(JSON_BOOLEAN, get_json_type(&v));
 }
 
+static void test_parse_number() {
+    TEST_NUMBER(123.0, "123.0");
+    TEST_NUMBER(0.0, "0.0");
+    TEST_NUMBER(0.0, "-0.0");
+    TEST_ERROR(0.1, "-.1");
+    TEST_ERROR(0.1, ".1");
+    TEST_ERROR(0.0, ".0");
+    TEST_ERROR(123, "0123");
+    TEST_ERROR(123, "+123");
+}
+
+static void test_parse_string() {
+    TEST_STRING("hello", "\"hello\"");
+    TEST_STRING("", "\"\"");
+    TEST_STRING("hi", "\"hi\" ");
+}
+
 int main() {
+    test_any_array();
     test_parse_null();
     test_parse_bool();
+    test_parse_number();
+    test_parse_string();
     printf("%d/%d (%3.2f%%) passed\n", test_pass, test_count, test_pass * 100.0 / test_count);
     return main_ret;
 }
