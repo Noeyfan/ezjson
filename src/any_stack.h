@@ -38,7 +38,7 @@ public:
 
     template<typename T>
       T* push(size_t count = 1) {
-	  if (stack_top_ + sizeof(T) * count >= stack_bottom_ + stack_cap_) {
+	  while (stack_top_ + sizeof(T) * count >= stack_bottom_ + stack_cap_) {
 	      expand<T>();
 	  }
 	  char* p_ = stack_top_;
@@ -50,7 +50,7 @@ public:
       T* pop(size_t count) {
 	  assert(stack_top_ != stack_bottom_);
 	  stack_top_ -= sizeof(T) * count;
-	  return stack_top_;
+	  return (T*)stack_top_;
       }
 
     template<typename T>
