@@ -61,6 +61,18 @@ static void test_any_array() {
     EXPECT_EQ_STRING(as.bottom<char>(), "abd");
 }
 
+static void test_any_array_composite() {
+    any_stack as;
+    json_value v1;
+    json_value v2;
+    parse_json(&v1, "\"hello\"");
+    parse_json(&v2, "\"world\"");
+    *as.push<json_value>() = v1;
+    *as.push<json_value>() = v2;
+    EXPECT_EQ_STRING("hello", as.bottom<json_value>()->s.s);
+    EXPECT_EQ_STRING("world", (as.bottom<json_value>() + 1)->s.s);
+}
+
 static void test_parse_null() {
     json_value v;
     v.type = JSON_BOOLEAN;
@@ -98,12 +110,42 @@ static void test_parse_string() {
     TEST_STRING("hi", "\"hi\" ");
 }
 
+// naive testing
+static void test_parse_array_simple() {
+    json_value v;
+    v.a.size = 0;
+    int expect[3] = {1,2,3};
+    EXPECT_EQ_INT(OK, parse_json(&v, "[1,2,3]"));
+    EXPECT_EQ_INT(JSON_ARRAY, get_json_type(&v));
+    EXPECT_EQ_INT(1, (int)(v.a.e)->number);
+    EXPECT_EQ_INT(2, (int)(v.a.e + 1)->number);
+    EXPECT_EQ_INT(3, (int)(v.a.e + 2)->number);
+    EXPECT_EQ_INT((int)sizeof(expect)/(int)sizeof(int), (int)v.a.size);
+}
+
+static void test_parse_array_combine() {
+    json_value v;
+    v.a.size = 0;
+    EXPECT_EQ_INT(OK, parse_json(&v, "[[1,\"hello\"],\"world\",true,null]"));
+    EXPECT_EQ_INT(JSON_ARRAY, get_json_type(&v));
+    EXPECT_EQ_INT(4, (int)v.a.size);
+    EXPECT_EQ_DOUBLE((double)1, (v.a.e->a.e)->number);
+    EXPECT_EQ_STRING("hello", (v.a.e->a.e + 1)->s.s);
+    EXPECT_EQ_INT(6, (int)(v.a.e->a.e + 1)->s.len);
+    EXPECT_EQ_STRING("world", (v.a.e + 1)->s.s);
+    EXPECT_EQ_INT(JSON_BOOLEAN, get_json_type(v.a.e + 2));
+    EXPECT_EQ_INT(JSON_NULL, get_json_type(v.a.e + 3));
+}
+
 int main() {
     test_any_array();
+    test_any_array_composite();
     test_parse_null();
     test_parse_bool();
     test_parse_number();
     test_parse_string();
+    test_parse_array_simple();
+    test_parse_array_combine();
     printf("%d/%d (%3.2f%%) passed\n", test_pass, test_count, test_pass * 100.0 / test_count);
     return main_ret;
 }

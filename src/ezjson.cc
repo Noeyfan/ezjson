@@ -66,7 +66,6 @@ parse_status parse_json_value_boolean(json_value* v, json_context* jc) {
 #define ISDIGIT1T9(ch) ((ch) >= '1' && (ch) <= '9')
 
 parse_status parse_json_number(json_value* v, json_context* jc) {
-    parse_status result = ERROR;
     const char* json = jc->context;
     if(*json == '-') json++;
     if(!ISDIGIT(*json)) return ERROR;
@@ -77,57 +76,66 @@ parse_status parse_json_number(json_value* v, json_context* jc) {
     }
     v->number = std::atof(jc->context);
     v->type = JSON_NUMBER;
-    result = OK;
-
     jc->context = json;
-    return result;
+    // std::cout << "end: "<<*json << "\n";
+    return OK;
 }
 
 parse_status parse_json_string(json_value* v, json_context* jc) {
-    parse_status result = ERROR;
     const char* json = jc->context;
     any_stack as;
+    v->s.len = 0;
     for(;;) {
 	json++;
 	v->s.len++;
+	// std::cout << "*json is: " << *json << "\n";
 	switch(*json) {
 	  case '\"':
 	    *as.push<char>() = '\0';
 	    v->type = JSON_STRING;
 	    v->s.s = (char*)malloc(v->s.len + 1);
 	    strcpy(v->s.s, as.bottom<char>());
+	    as.pop<char>(v->s.len + 1);
 	    jc->context = json + 1;
 	    return OK;
 	  case '\0':
 	    jc->context = json;
+	    assert(false);
 	    return ERROR;
 	  default:
 	    *as.push<char>() = *json;
 	}
     }
-    return result;
+    assert(false);
+    return ERROR;
 }
 
 parse_status parse_json_array(json_value* v, json_context* jc) {
-    json_value tmp_v;
-    json_context tmp_jc(jc->context+1);
+    json_context tmp_jc(jc->context + 1);
     int size = 0;
     any_stack as;
     for(;;) {
+	// std::cout << "context: " << *tmp_jc.context << "\n";
 	switch(*tmp_jc.context) {
 	  case ']':
 	    v->a.e = (json_value*)malloc(size * sizeof(json_value));
 	    memcpy(v->a.e, as.bottom<json_value>(), size * sizeof(json_value));
 	    v->a.size = size;
-	    jc->context = tmp_jc.context+1;
+	    jc->context = tmp_jc.context + 1;
+	    v->type = JSON_ARRAY;
 	    return OK;
 	  case ',':
 	    tmp_jc.context += 1;
+	    break;
+	  case '\0':
+	    assert(false);
+	    return ERROR;
+	  default:
+	    json_value tmp_v;
+	    // std::cout << "enter default: " << *tmp_jc.context << "\n";
 	    assert(parse_json_value(&tmp_v, &tmp_jc) == OK);
 	    *as.push<json_value>() = tmp_v;
 	    size++;
-	  default:
-	    return ERROR;
 	}
     }
     return ERROR;
