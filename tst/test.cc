@@ -125,7 +125,6 @@ static void test_parse_array_simple() {
 
 static void test_parse_array_combine() {
     json_value v;
-    v.a.size = 0;
     EXPECT_EQ_INT(OK, parse_json(&v, "[[1,\"hello\"],\"world\",true,null]"));
     EXPECT_EQ_INT(JSON_ARRAY, get_json_type(&v));
     EXPECT_EQ_INT(4, (int)v.a.size);
@@ -137,6 +136,16 @@ static void test_parse_array_combine() {
     EXPECT_EQ_INT(JSON_NULL, get_json_type(v.a.e + 3));
 }
 
+static void test_parse_object_simple() {
+    json_value v;
+    EXPECT_EQ_INT(OK, parse_json(&v, "{hello:1, world:\"yes\"}"));
+    EXPECT_EQ_DOUBLE((double)1, v.o.m->v.number);
+    EXPECT_EQ_STRING("hello", v.o.m->k);
+    EXPECT_EQ_STRING("yes", (v.o.m+1)->v.s.s);
+    EXPECT_EQ_STRING("world", (v.o.m+1)->k);
+    EXPECT_EQ_INT(JSON_OBJECT, get_json_type(&v));
+}
+
 int main() {
     test_any_array();
     test_any_array_composite();
@@ -146,6 +155,7 @@ int main() {
     test_parse_string();
     test_parse_array_simple();
     test_parse_array_combine();
+    test_parse_object_simple();
     printf("%d/%d (%3.2f%%) passed\n", test_pass, test_count, test_pass * 100.0 / test_count);
     return main_ret;
 }

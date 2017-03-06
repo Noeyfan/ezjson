@@ -2,5 +2,6 @@
 2. Implement JSON Number #DONE
 3. Implement String, Implement type erasure Stack #DONE
 4. Implement Array #DONE
-4. Add test for Array
-4. Implement Struct
+5. Add test for Array #DONE
+6. Implement Object #DONE
+7. Add test for Object #DONE simple test

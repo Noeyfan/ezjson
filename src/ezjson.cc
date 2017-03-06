@@ -141,6 +141,53 @@ parse_status parse_json_array(json_value* v, json_context* jc) {
     return ERROR;
 }
 
+parse_status parse_json_object(json_value* v, json_context* jc) {
+    json_context tmp_jc(jc->context + 1);
+    int size = 0;
+    int klen = 0;
+    any_stack as;
+    any_stack as_json_member;
+    for(;;) {
+      switch(*tmp_jc.context) {
+	case '}':
+	  jc->context = tmp_jc.context + 1;
+	  as_json_member.pop<json_member>(size);
+	  v->o.size = size;
+	  v->o.m = (json_member*)malloc(size * sizeof(json_member));
+	  memcpy(v->o.m, as_json_member.bottom<json_member>(), size * sizeof(json_member));
+	  v->type = JSON_OBJECT;
+	  return OK;
+	case ':': {
+	  char* key = (char*)malloc(klen + 1);
+	  *as.push<char>() = '\0';
+	  as.pop<char>(klen + 1);
+	  strcpy(key, as.bottom<char>());
+	  json_value jv;
+	  tmp_jc.context++;
+	  assert(parse_json_value(&jv, &tmp_jc) == OK);
+	  json_member jm;
+	  jm.k = key; jm.klen = klen; jm.v = jv;
+	  klen = 0;
+	  *as_json_member.push<json_member>() = jm;
+	  size++;
+	  break;
+	}
+	case ',':
+	case ' ':
+	case '\n':
+	  tmp_jc.context++;
+	  break;
+	case '\0':
+	  return ERROR;
+	  break;
+	default:
+	  *as.push<char>() = *tmp_jc.context;
+	  klen++;
+	  tmp_jc.context++;
+      }
+    }
+}
+
 int i = 0;
 
 parse_status parse_json_value(json_value* v, json_context* jc) {
@@ -155,6 +202,8 @@ parse_status parse_json_value(json_value* v, json_context* jc) {
 	return parse_json_string(v, jc);
       case '[':
 	return parse_json_array(v, jc);
+      case '{':
+	return parse_json_object(v, jc);
       default:
 	return parse_json_number(v, jc);
     }
